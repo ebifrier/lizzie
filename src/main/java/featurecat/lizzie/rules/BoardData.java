@@ -15,6 +15,7 @@ public class BoardData {
   public int[] moveNumberList;
   public boolean blackToPlay;
   public boolean dummy;
+  public boolean main;
 
   public Stone lastMoveColor;
   public Stone[] stones;
@@ -50,6 +51,7 @@ public class BoardData {
     this.moveNumberList = moveNumberList;
     this.blackToPlay = blackToPlay;
     this.dummy = false;
+    this.main = false;
 
     this.lastMoveColor = lastMoveColor;
     this.stones = stones;
@@ -63,15 +65,18 @@ public class BoardData {
     this.bestMoves = new ArrayList<>();
   }
 
-  public static BoardData empty(int width, int height) {
+  public static BoardData empty(int width, int height, boolean main) {
     Stone[] stones = new Stone[width * height];
     for (int i = 0; i < stones.length; i++) {
       stones[i] = Stone.EMPTY;
     }
 
     int[] boardArray = new int[width * height];
-    return new BoardData(
-        stones, Optional.empty(), Stone.EMPTY, true, new Zobrist(), 0, boardArray, 0, 0, 50, 0);
+    BoardData data =
+        new BoardData(
+            stones, Optional.empty(), Stone.EMPTY, true, new Zobrist(), 0, boardArray, 0, 0, 50, 0);
+    data.main = main;
+    return data;
   }
 
   /**
@@ -157,7 +162,7 @@ public class BoardData {
   public void tryToClearBestMoves() {
     bestMoves = new ArrayList<>();
     playouts = 0;
-    if (Lizzie.leelaz.isKataGo) {
+    if (Lizzie.leelaz != null && Lizzie.leelaz.isKataGo) {
       Lizzie.leelaz.scoreMean = 0;
       Lizzie.leelaz.scoreStdev = 0;
     }
@@ -169,7 +174,7 @@ public class BoardData {
       setPlayouts(MoveData.getPlayouts(moves));
       winrate = getWinrateFromBestMoves(moves);
     }
-    if (Lizzie.leelaz.isKataGo) {
+    if (Lizzie.leelaz != null && Lizzie.leelaz.isKataGo) {
       Lizzie.leelaz.scoreMean = moves.get(0).scoreMean;
       Lizzie.leelaz.scoreStdev = moves.get(0).scoreStdev;
     }
@@ -198,7 +203,8 @@ public class BoardData {
       sb.append("move ").append(move.coordinate);
       sb.append(" visits ").append(move.playouts);
       sb.append(" winrate ").append((int) (move.winrate * 100));
-      if (Lizzie.leelaz.isKataGo) sb.append(" scoreMean ").append(move.scoreMean);
+      if (Lizzie.leelaz != null && Lizzie.leelaz.isKataGo)
+        sb.append(" scoreMean ").append(move.scoreMean);
       sb.append(" pv ").append(move.variation.stream().reduce((a, b) -> a + " " + b).get());
       sb.append(" info "); // this order is just because of how the MoveData info parser works
     }
@@ -229,10 +235,11 @@ public class BoardData {
     this.blackCaptures = data.blackCaptures;
     this.whiteCaptures = data.whiteCaptures;
     this.comment = data.comment;
+    this.main = data.main;
   }
 
   public BoardData clone() {
-    BoardData data = BoardData.empty(19, 19);
+    BoardData data = BoardData.empty(19, 19, false);
     data.sync(this);
     return data;
   }

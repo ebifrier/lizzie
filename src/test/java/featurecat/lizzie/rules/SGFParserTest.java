@@ -7,31 +7,22 @@ import static org.junit.Assert.assertTrue;
 import common.Util;
 import featurecat.lizzie.Config;
 import featurecat.lizzie.Lizzie;
-import featurecat.lizzie.analysis.Leelaz;
+import featurecat.lizzie.gui.LizzieFrame;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class SGFParserTest {
-
-  private Lizzie lizzie;
-
-  @Test
-  public void run() throws IOException {
-    lizzie = new Lizzie();
-    lizzie.config = new Config();
-    lizzie.board = new Board();
-    //    lizzie.frame = new LizzieFrame();
-    // new Thread( () -> {
-    lizzie.leelaz = new Leelaz("");
-    // }).start();
-
-    testVariaionOnly1();
-    testFull1();
-    testMore1();
+  @BeforeClass
+  public static void setup() throws IOException {
+    Lizzie.config = new Config();
+    Lizzie.board = new Board();
+    Lizzie.frame = new LizzieFrame();
   }
 
+  @Test
   public void testVariaionOnly1() throws IOException {
 
     String sgfString =
@@ -56,7 +47,7 @@ public class SGFParserTest {
 
     // Variations
     List<String> moveList = new ArrayList<String>();
-    Util.getVariationTree(moveList, 0, lizzie.board.getHistory().getCurrentHistoryNode(), 0, true);
+    Util.getVariationTree(moveList, 0, Lizzie.board.getHistory().getCurrentHistoryNode(), 0, true);
 
     assertEquals(moveList.size(), variationNum);
     assertEquals(moveList.get(0), mainBranch);
@@ -68,9 +59,10 @@ public class SGFParserTest {
     String saveSgf = SGFParser.saveToString();
     assertTrue(saveSgf.trim().length() > 0);
 
-    assertEquals(sgfString, Util.trimGameInfo(saveSgf));
+    assertEquals(sgfString, Util.removeLzSgf(Util.trimGameInfo(saveSgf)));
   }
 
+  @Test
   public void testFull1() throws IOException {
 
     String sgfInfo = "(;CA[utf8]AP[MultiGo:4.4.4]SZ[19]";
@@ -96,7 +88,7 @@ public class SGFParserTest {
 
     // Variations
     List<String> moveList = new ArrayList<String>();
-    Util.getVariationTree(moveList, 0, lizzie.board.getHistory().getCurrentHistoryNode(), 0, true);
+    Util.getVariationTree(moveList, 0, Lizzie.board.getHistory().getCurrentHistoryNode(), 0, true);
 
     assertEquals(moveList.size(), variationNum);
     assertEquals(moveList.get(0), mainBranch);
@@ -117,9 +109,10 @@ public class SGFParserTest {
     assertArrayEquals(expectStones, actualStones);
 
     // Content
-    assertEquals("(" + sgfContent, ret[1]);
+    assertEquals("(" + sgfContent, Util.removeLzSgf(ret[1]));
   }
 
+  @Test
   public void testMore1() throws IOException {
 
     String sgfInfo = "(;CA[gb2312]AP[MultiGo:4.4.4]SZ[19]EV[Question 1 Ko]US[new]CP[newnet]";
@@ -147,7 +140,7 @@ public class SGFParserTest {
 
     // Variations
     List<String> moveList = new ArrayList<String>();
-    Util.getVariationTree(moveList, 0, lizzie.board.getHistory().getCurrentHistoryNode(), 0, true);
+    Util.getVariationTree(moveList, 0, Lizzie.board.getHistory().getCurrentHistoryNode(), 0, true);
 
     assertEquals(moveList.size(), variationNum);
     assertEquals(moveList.get(0), mainBranch);
@@ -181,6 +174,6 @@ public class SGFParserTest {
     assertArrayEquals(expectStones, actualStones);
 
     // Content
-    assertEquals("(" + headComment + sgfContent, ret[1]);
+    assertEquals("(" + headComment + sgfContent, Util.removeLzSgf(ret[1]));
   }
 }

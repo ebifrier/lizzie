@@ -88,6 +88,7 @@ public class BoardHistoryList {
       start = pre;
     }
   }
+
   /**
    * moves the pointer to the right, returns the data stored there
    *
@@ -191,6 +192,10 @@ public class BoardHistoryList {
 
   public BoardHistoryNode getCurrentHistoryNode() {
     return head;
+  }
+
+  public void setCurrentHistoryNode(BoardHistoryNode node) {
+    head = node;
   }
 
   /**
@@ -322,6 +327,11 @@ public class BoardHistoryList {
   }
 
   public void place(int x, int y, Stone color, boolean newBranch, boolean changeMove) {
+    place(x, y, color, newBranch, changeMove, false);
+  }
+
+  public void place(
+      int x, int y, Stone color, boolean newBranch, boolean changeMove, boolean mainMove) {
     synchronized (this) {
       if (!Board.isValid(x, y)
           || (this.getStones()[Board.getIndex(x, y)] != Stone.EMPTY && !newBranch)) return;
@@ -329,17 +339,23 @@ public class BoardHistoryList {
       double nextWinrate = -100;
       if (this.getData().winrate >= 0) nextWinrate = 100 - this.getData().winrate;
 
-      // check to see if this coordinate is being replayed in history
-      Optional<int[]> nextLast = this.getNext().flatMap(n -> n.lastMove);
-      if (nextLast.isPresent()
-          && nextLast.get()[0] == x
-          && nextLast.get()[1] == y
-          && !newBranch
-          && !changeMove) {
-        // this is the next coordinate in history. Just increment history so that we don't erase the
-        // redo's
-        this.next();
-        return;
+      // check to see if this coordinate is being replayed in variation history
+      for (int i = 0; i < this.getNexts().size(); ++i) {
+        Optional<int[]> nextLast = this.getNexts().get(i).getData().lastMove;
+        if (nextLast.isPresent()
+            && nextLast.get()[0] == x
+            && nextLast.get()[1] == y
+            && !newBranch
+            && !changeMove) {
+          // this is the next coordinate in history. Just increment history so that we don't erase
+          // the
+          // redo's
+          Optional<BoardData> data = this.nextVariation(i);
+          if (mainMove) {
+            data.ifPresent(n -> n.main = mainMove);
+          }
+          return;
+        }
       }
 
       // load a copy of the data at the current node of history
@@ -394,6 +410,7 @@ public class BoardHistoryList {
               nextWinrate,
               0);
       newState.moveMNNumber = moveMNNumber;
+      newState.main = mainMove;
 
       // don't make this coordinate if it is suicidal or violates superko
       if (isSuicidal > 0 || this.violatesKoRule(newState)) return;

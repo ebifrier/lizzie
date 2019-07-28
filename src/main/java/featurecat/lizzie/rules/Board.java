@@ -65,8 +65,11 @@ public class Board implements LeelazListener {
     analysisMode = false;
     playoutsAnalysis = 100;
     saveNode = Optional.empty();
-    Lizzie.frame.setForceRefresh(false);
-    history = new BoardHistoryList(BoardData.empty(boardWidth, boardHeight));
+    history = new BoardHistoryList(BoardData.empty(boardWidth, boardHeight, true));
+
+    if (Lizzie.frame != null) {
+      Lizzie.frame.setForceRefresh(false);
+    }
   }
 
   /**
@@ -208,7 +211,9 @@ public class Board implements LeelazListener {
       boardHeight = height;
       Zobrist.init();
       clear();
-      Lizzie.leelaz.boardSize(boardWidth, boardHeight);
+      if (Lizzie.leelaz != null) {
+        Lizzie.leelaz.boardSize(boardWidth, boardHeight);
+      }
       Lizzie.frame.setForceRefresh(true);
     }
   }
@@ -355,7 +360,9 @@ public class Board implements LeelazListener {
 
   public void setKomi(double komi) {
     getHistory().getGameInfo().setKomi(komi);
-    Lizzie.leelaz.komi(komi);
+    if (Lizzie.leelaz != null) {
+      Lizzie.leelaz.komi(komi);
+    }
   }
 
   /**
@@ -389,10 +396,11 @@ public class Board implements LeelazListener {
         // this is the next move in history. Just increment history so that we don't erase the
         // redo's
         history.next();
-        Lizzie.leelaz.playMove(color, "pass");
-        if (Lizzie.frame.isPlayingAgainstLeelaz)
-          Lizzie.leelaz.genmove((history.isBlacksTurn() ? "B" : "W"));
-
+        if (Lizzie.leelaz != null) {
+          Lizzie.leelaz.playMove(color, "pass");
+          if (Lizzie.frame.isPlayingAgainstLeelaz)
+            Lizzie.leelaz.genmove((history.isBlacksTurn() ? "B" : "W"));
+        }
         return;
       }
 
@@ -421,9 +429,11 @@ public class Board implements LeelazListener {
       newState.dummy = dummy;
 
       // update leelaz with pass
-      if (!Lizzie.leelaz.isInputCommand) Lizzie.leelaz.playMove(color, "pass");
-      if (Lizzie.frame.isPlayingAgainstLeelaz)
-        Lizzie.leelaz.genmove((history.isBlacksTurn() ? "W" : "B"));
+      if (Lizzie.leelaz != null) {
+        if (!Lizzie.leelaz.isInputCommand) Lizzie.leelaz.playMove(color, "pass");
+        if (Lizzie.frame.isPlayingAgainstLeelaz)
+          Lizzie.leelaz.genmove((history.isBlacksTurn() ? "W" : "B"));
+      }
 
       // update history with pass
       history.addOrGoto(newState, newBranch, changeMove);
@@ -452,6 +462,10 @@ public class Board implements LeelazListener {
     place(x, y, color, newBranch, false);
   }
 
+  public void place(int x, int y, Stone color, boolean newBranch, boolean changeMove) {
+    place(x, y, color, newBranch, changeMove, false);
+  }
+
   /**
    * Places a stone onto the board representation. Thread safe
    *
@@ -460,8 +474,9 @@ public class Board implements LeelazListener {
    * @param color the type of stone to place
    * @param newBranch add a new branch
    */
-  public void place(int x, int y, Stone color, boolean newBranch, boolean changeMove) {
-    if (Lizzie.frame.isEstimating) {
+  public void place(
+      int x, int y, Stone color, boolean newBranch, boolean changeMove, boolean mainMove) {
+    if (Lizzie.frame != null && Lizzie.frame.isEstimating) {
       Lizzie.frame.noEstimateByZen();
     }
     synchronized (this) {
@@ -480,24 +495,33 @@ public class Board implements LeelazListener {
       if (history.getData().winrate >= 0) nextWinrate = 100 - history.getData().winrate;
 
       // check to see if this coordinate is being replayed in history
-      Optional<int[]> nextLast = history.getNext().flatMap(n -> n.lastMove);
-      if (nextLast.isPresent()
-          && nextLast.get()[0] == x
-          && nextLast.get()[1] == y
-          && !newBranch
-          && !changeMove) {
-        // this is the next coordinate in history. Just increment history so that we don't erase the
-        // redo's
-        history.next();
-        // should be opposite from the bottom case
-        if (Lizzie.frame.isPlayingAgainstLeelaz
-            && Lizzie.frame.playerIsBlack != getData().blackToPlay) {
-          Lizzie.leelaz.playMove(color, convertCoordinatesToName(x, y));
-          Lizzie.leelaz.genmove((Lizzie.board.getData().blackToPlay ? "W" : "B"));
-        } else if (!Lizzie.frame.isPlayingAgainstLeelaz) {
-          Lizzie.leelaz.playMove(color, convertCoordinatesToName(x, y));
+      for (int i = 0; i < history.getNexts().size(); ++i) {
+        Optional<int[]> nextLast = history.getNexts().get(i).getData().lastMove;
+        if (nextLast.isPresent()
+            && nextLast.get()[0] == x
+            && nextLast.get()[1] == y
+            && !newBranch
+            && !changeMove) {
+          // this is the next coordinate in history. Just increment history so that we don't erase
+          // the
+          // redo's
+          Optional<BoardData> data = history.nextVariation(i);
+          if (mainMove) {
+            data.ifPresent(n -> n.main = mainMove);
+          }
+
+          if (Lizzie.leelaz != null && Lizzie.frame != null) {
+            // should be opposite from the bottom case
+            if (Lizzie.frame.isPlayingAgainstLeelaz
+                && Lizzie.frame.playerIsBlack != getData().blackToPlay) {
+              Lizzie.leelaz.playMove(color, convertCoordinatesToName(x, y));
+              Lizzie.leelaz.genmove((Lizzie.board.getData().blackToPlay ? "W" : "B"));
+            } else if (!Lizzie.frame.isPlayingAgainstLeelaz) {
+              Lizzie.leelaz.playMove(color, convertCoordinatesToName(x, y));
+            }
+          }
+          return;
         }
-        return;
       }
 
       // load a copy of the data at the current node of history
@@ -553,17 +577,20 @@ public class Board implements LeelazListener {
               0);
       newState.moveMNNumber = moveMNNumber;
       newState.dummy = false;
+      newState.main = mainMove;
 
       // don't make this coordinate if it is suicidal or violates superko
       if (isSuicidal > 0 || history.violatesKoRule(newState)) return;
 
-      // update leelaz with board position
-      if (Lizzie.frame.isPlayingAgainstLeelaz
-          && Lizzie.frame.playerIsBlack == getData().blackToPlay) {
-        Lizzie.leelaz.playMove(color, convertCoordinatesToName(x, y));
-        Lizzie.leelaz.genmove((Lizzie.board.getData().blackToPlay ? "W" : "B"));
-      } else if (!Lizzie.frame.isPlayingAgainstLeelaz && !Lizzie.leelaz.isInputCommand) {
-        Lizzie.leelaz.playMove(color, convertCoordinatesToName(x, y));
+      if (Lizzie.leelaz != null) {
+        // update leelaz with board position
+        if (Lizzie.frame.isPlayingAgainstLeelaz
+            && Lizzie.frame.playerIsBlack == getData().blackToPlay) {
+          Lizzie.leelaz.playMove(color, convertCoordinatesToName(x, y));
+          Lizzie.leelaz.genmove((Lizzie.board.getData().blackToPlay ? "W" : "B"));
+        } else if (!Lizzie.frame.isPlayingAgainstLeelaz && !Lizzie.leelaz.isInputCommand) {
+          Lizzie.leelaz.playMove(color, convertCoordinatesToName(x, y));
+        }
       }
 
       // update history with this coordinate
@@ -745,14 +772,16 @@ public class Board implements LeelazListener {
     synchronized (this) {
       updateWinrate();
       if (history.next().isPresent()) {
-        // update leelaz board position, before updating to next node
-        Optional<int[]> lastMoveOpt = history.getData().lastMove;
-        if (lastMoveOpt.isPresent()) {
-          int[] lastMove = lastMoveOpt.get();
-          String name = convertCoordinatesToName(lastMove[0], lastMove[1]);
-          Lizzie.leelaz.playMove(history.getLastMoveColor(), name);
-        } else {
-          Lizzie.leelaz.playMove(history.getLastMoveColor(), "pass");
+        if (Lizzie.leelaz != null) {
+          // update leelaz board position, before updating to next node
+          Optional<int[]> lastMoveOpt = history.getData().lastMove;
+          if (lastMoveOpt.isPresent()) {
+            int[] lastMove = lastMoveOpt.get();
+            String name = convertCoordinatesToName(lastMove[0], lastMove[1]);
+            Lizzie.leelaz.playMove(history.getLastMoveColor(), name);
+          } else {
+            Lizzie.leelaz.playMove(history.getLastMoveColor(), "pass");
+          }
         }
         Lizzie.frame.refresh();
         return true;
@@ -802,13 +831,15 @@ public class Board implements LeelazListener {
 
   /** Restore move number by node */
   public void restoreMoveNumber(BoardHistoryNode node) {
-    Stone[] stones = history.getStones();
-    for (int i = 0; i < stones.length; i++) {
-      Stone stone = stones[i];
-      if (stone.isBlack() || stone.isWhite()) {
-        int y = i % Board.boardWidth;
-        int x = (i - y) / Board.boardHeight;
-        Lizzie.leelaz.playMove(stone, convertCoordinatesToName(x, y));
+    if (Lizzie.leelaz != null) {
+      Stone[] stones = history.getStones();
+      for (int i = 0; i < stones.length; i++) {
+        Stone stone = stones[i];
+        if (stone.isBlack() || stone.isWhite()) {
+          int y = i % Board.boardWidth;
+          int x = (i - y) / Board.boardHeight;
+          Lizzie.leelaz.playMove(stone, convertCoordinatesToName(x, y));
+        }
       }
     }
     int moveNumber = node.getData().moveNumber;
@@ -878,12 +909,14 @@ public class Board implements LeelazListener {
       if (history.nextVariation(idx).isPresent()) {
         // Update leelaz board position, before updating to next node
         Optional<int[]> lastMoveOpt = history.getData().lastMove;
-        if (lastMoveOpt.isPresent()) {
-          int[] lastMove = lastMoveOpt.get();
-          String name = convertCoordinatesToName(lastMove[0], lastMove[1]);
-          Lizzie.leelaz.playMove(history.getLastMoveColor(), name);
-        } else {
-          Lizzie.leelaz.playMove(history.getLastMoveColor(), "pass");
+        if (Lizzie.leelaz != null) {
+          if (lastMoveOpt.isPresent()) {
+            int[] lastMove = lastMoveOpt.get();
+            String name = convertCoordinatesToName(lastMove[0], lastMove[1]);
+            Lizzie.leelaz.playMove(history.getLastMoveColor(), name);
+          } else {
+            Lizzie.leelaz.playMove(history.getLastMoveColor(), "pass");
+          }
         }
         Lizzie.frame.refresh();
         return true;
@@ -1085,9 +1118,16 @@ public class Board implements LeelazListener {
 
   /** Clears all history and starts over from empty board. */
   public void clear() {
-    Lizzie.leelaz.clear();
-    Lizzie.frame.resetTitle();
-    Lizzie.frame.clear();
+    if (Lizzie.leelaz != null) {
+      Lizzie.leelaz.clear();
+    }
+    if (Lizzie.frame != null) {
+      Lizzie.frame.resetTitle();
+      Lizzie.frame.clear();
+    }
+    if (Lizzie.watcher != null) {
+      Lizzie.watcher.resetLastLoaded();
+    }
     initialize();
   }
 
@@ -1100,7 +1140,7 @@ public class Board implements LeelazListener {
       if (inScoreMode()) setScoreMode(false);
       updateWinrate();
       if (history.previous().isPresent()) {
-        Lizzie.leelaz.undo();
+        if (Lizzie.leelaz != null) Lizzie.leelaz.undo();
         Lizzie.frame.refresh();
         return true;
       }
@@ -1359,7 +1399,7 @@ public class Board implements LeelazListener {
 
   public void toggleAnalysis() {
     if (analysisMode) {
-      Lizzie.leelaz.removeListener(this);
+      if (Lizzie.leelaz != null) Lizzie.leelaz.removeListener(this);
       analysisMode = false;
     } else {
       if (!getNextMove().isPresent()) return;
@@ -1372,9 +1412,12 @@ public class Board implements LeelazListener {
         System.out.println("Not a valid number");
         return;
       }
-      Lizzie.leelaz.addListener(this);
+
       analysisMode = true;
-      if (!Lizzie.leelaz.isPondering()) Lizzie.leelaz.togglePonder();
+      if (Lizzie.leelaz != null) {
+        Lizzie.leelaz.addListener(this);
+        if (!Lizzie.leelaz.isPondering()) Lizzie.leelaz.togglePonder();
+      }
     }
   }
 
@@ -1435,6 +1478,8 @@ public class Board implements LeelazListener {
   }
 
   public void updateWinrate() {
+    if (Lizzie.leelaz == null) return;
+
     Leelaz.WinrateStats stats = Lizzie.leelaz.getWinrateStats();
     if (stats.maxWinrate >= 0 && stats.totalPlayouts > history.getData().getPlayouts()) {
       history.getData().winrate = stats.maxWinrate;
