@@ -324,7 +324,7 @@ public class Leelaz {
           // don't follow the maxAnalyzeTime rule if we are in analysis mode
           if (System.currentTimeMillis() - startPonderTime > maxAnalyzeTimeMillis
               && !Lizzie.board.inAnalysisMode()) {
-            togglePonder();
+            // togglePonder();
           }
         }
       } else if (line.contains(" -> ")) {
@@ -392,24 +392,36 @@ public class Leelaz {
             }
           }
         } else if (isCheckingName) {
-          if (params[1].startsWith("KataGo")) {
-            this.isKataGo = true;
-            Lizzie.initializeAfterVersionCheck(this);
+          if (params.length >= 2) {
+            if (params[1].startsWith("KataGo")) {
+              this.isKataGo = true;
+              Lizzie.initializeAfterVersionCheck(this);
+            }
+            isCheckingName = false;
+            Lizzie.gtpConsole.addLine("name checked");
           }
-          isCheckingName = false;
         } else if (isCheckingVersion && !isKataGo) {
-          String[] ver = params[1].split("\\.");
-          int minor = Integer.parseInt(ver[1]);
-          // Gtp support added in version 15
-          if (minor < 15) {
-            JOptionPane.showMessageDialog(
-                Lizzie.frame,
-                "Lizzie requires version 0.15 or later of Leela Zero for analysis (found "
-                    + params[1]
-                    + ")");
+          try {
+            if (params.length >= 2) {
+              String[] ver = params[1].split("\\.");
+              if (ver.length >= 2) {
+                int minor = Integer.parseInt(ver[1]);
+                // Gtp support added in version 15
+                if (minor < 15) {
+                  JOptionPane.showMessageDialog(
+                      Lizzie.frame,
+                      "Lizzie requires version 0.15 or later of Leela Zero for analysis (found "
+                          + params[1]
+                          + ")");
+                }
+                isCheckingVersion = false;
+                Lizzie.gtpConsole.addLine("version checked");
+                Lizzie.initializeAfterVersionCheck(this);
+              }
+            }
+          } catch (NumberFormatException nfe) {
+            // ignore
           }
-          isCheckingVersion = false;
-          Lizzie.initializeAfterVersionCheck(this);
         }
       }
     }
@@ -443,7 +455,11 @@ public class Leelaz {
       while ((c = inputStream.read()) != -1) {
         line.append((char) c);
         if ((c == '\n')) {
-          parseLine(line.toString());
+          try {
+            parseLine(line.toString());
+          } catch (Exception ex) {
+            Lizzie.gtpConsole.addLine(ex.getMessage());
+          }
           line = new StringBuilder();
         }
       }
