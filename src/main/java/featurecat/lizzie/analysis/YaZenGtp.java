@@ -91,7 +91,6 @@ public class YaZenGtp {
 
   private void parseLine(String line) {
     synchronized (this) {
-      Lizzie.gtpConsole.addLineForce(line);
       if (line.startsWith("=  ")) {
         String[] params = line.trim().split(" ");
         for (int i = 2; i < params.length; i++) esitmateArray.add(Integer.parseInt(params[i]));
