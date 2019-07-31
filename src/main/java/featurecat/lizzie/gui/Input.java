@@ -184,9 +184,16 @@ public class Input implements MouseListener, KeyListener, MouseWheelListener, Mo
     int refreshType = 1;
 
     switch (e.getKeyCode()) {
+      case VK_U:
+        while (Lizzie.board.previousMove()) ;
+        while (Lizzie.board.nextMainMove()) ;
+        Lizzie.frame.refresh();
+        break;
+
       case VK_E:
         Lizzie.frame.toggleGtpConsole();
         break;
+
       case VK_RIGHT:
         if (e.isShiftDown()) {
           moveBranchDown();

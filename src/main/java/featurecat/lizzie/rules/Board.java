@@ -803,6 +803,19 @@ public class Board implements LeelazListener {
     }
   }
 
+  public boolean nextMainMove() {
+    BoardHistoryNode current = history.getCurrentHistoryNode();
+    // List<BoardHistoryNode> variations = history.getCurrentHistoryNode().getVariation();
+    for (int i = 0; i < current.numberOfChildren(); ++i) {
+      Optional<BoardHistoryNode> n = current.getVariation(i);
+      if (n.isPresent() && n.get().getData().main) {
+        return nextMove(i);
+      }
+    }
+
+    return false;
+  }
+
   /** Save the move number for restore If in the branch, save the back routing from children */
   public void saveMoveNumber() {
     BoardHistoryNode currentNode = history.getCurrentHistoryNode();
