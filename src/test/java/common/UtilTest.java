@@ -1,8 +1,7 @@
-package featurecat.lizzie.analysis;
+package common;
 
 import static org.junit.Assert.assertEquals;
 
-import common.Util;
 import featurecat.lizzie.*;
 import featurecat.lizzie.rules.*;
 import org.junit.Test;
