@@ -47,13 +47,17 @@ public class RecordWatcherTest {
     Lizzie.board = new Board();
     assertTrue(Lizzie.board.getData().main);
 
-    String sgf = "(;GM[1]FF[4]SZ[19];B[dq])";
+    String sgf = "(;GM[1]FF[4]SZ[19])";
     assertTrue(SGFParser.loadFromString(sgf));
-    while (Lizzie.board.nextMove()) ;
-
     BoardHistoryList history = Lizzie.board.getHistory();
-    assertEquals(1, history.getMoveNumber());
+    assertEquals(0, history.getMoveNumber());
     assertTrue(history.getData().main);
+
+    // 初期局面から更新された場合
+    sgf = "(;GM[1]FF[4]SZ[19];B[dq])";
+    assertNeedToMove(history, sgf, true);
+    while (history.next().isPresent()) ;
+    assertEquals(1, history.getMoveNumber());
 
     // 最新局面から手が更新された場合
     sgf = "(;GM[1]FF[4]SZ[19];B[dq];W[cd])";

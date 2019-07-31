@@ -121,7 +121,11 @@ public class SGFParser {
       Lizzie.board.reopen(boardWidth, boardHeight);
     }
 
+    // 読み込みのルートノードは常にmainMoveとして設定します。
+    Lizzie.board.getData().main = true;
+
     if (extend) {
+      // 拡張読み込みの場合はBoardではなく打ち手の履歴に読み込みます。
       BoardHistoryList history = Lizzie.board.getHistory();
       parseValue(value, history, false, extend, true);
     } else {
