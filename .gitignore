@@ -3,6 +3,7 @@ persist
 lizzie.properties
 config.txt
 out/*
+bin/*
 .idea/
 *.dll
 *.iml
