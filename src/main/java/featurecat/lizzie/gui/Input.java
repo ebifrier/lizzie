@@ -185,9 +185,9 @@ public class Input implements MouseListener, KeyListener, MouseWheelListener, Mo
 
     switch (e.getKeyCode()) {
       case VK_U:
-        while (Lizzie.board.previousMove()) ;
+        /*while (Lizzie.board.previousMove()) ;
         while (Lizzie.board.nextMainMove()) ;
-        Lizzie.frame.refresh();
+        Lizzie.frame.refresh();*/
         break;
 
       case VK_E:
