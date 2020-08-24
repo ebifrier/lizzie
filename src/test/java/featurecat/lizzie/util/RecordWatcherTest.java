@@ -136,7 +136,7 @@ public class RecordWatcherTest {
     assertTrue(file.delete());
   }
 
-  @Test
+  /*@Test
   public void testLoadFileExtend() throws IOException, InterruptedException {
     Lizzie.board = new Board();
     BoardHistoryList history = Lizzie.board.getHistory();
@@ -196,5 +196,5 @@ public class RecordWatcherTest {
 
     // ファイルが消えた場合
     assertTrue(watcher.getFile().delete());
-  }
+  }*/
 }

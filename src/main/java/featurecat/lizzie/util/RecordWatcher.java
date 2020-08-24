@@ -7,13 +7,16 @@ import featurecat.lizzie.rules.SGFParser;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public class RecordWatcher implements ActionListener {
   private File file_;
-  private long lastLoaded_ = -1;
+  private String lastLoaded_ = "";
 
   public File getFile() {
     return file_;
@@ -34,7 +37,7 @@ public class RecordWatcher implements ActionListener {
   }
 
   public void resetLastLoaded() {
-    lastLoaded_ = -1;
+    lastLoaded_ = "";
   }
 
   public void actionPerformed(ActionEvent e) {
@@ -43,14 +46,42 @@ public class RecordWatcher implements ActionListener {
       return;
     }
 
-    if (lastLoaded_ < 0 || file.lastModified() > lastLoaded_) {
-      loadFileExtend(file);
-      lastLoaded_ = file.lastModified();
+    String fileData = loadFile(file);
+    if (fileData != "" && fileData != lastLoaded_) {
+      loadFileExtend(fileData);
+      lastLoaded_ = fileData;
       System.out.println(String.format("loaded file: %s", file.getPath()));
     }
   }
 
-  public void loadFileExtend(File file) {
+  private String loadFile(File file) {
+
+    try {
+      String encoding = null;
+      try (FileInputStream fp1 = new FileInputStream(file)) {
+        encoding = EncodingDetector.detect(fp1);
+      }
+
+      try (FileInputStream fp = new FileInputStream(file);
+          InputStreamReader reader = new InputStreamReader(fp, encoding)) {
+        StringBuilder builder = new StringBuilder();
+        while (reader.ready()) {
+          builder.append((char) reader.read());
+        }
+
+        String value = builder.toString();
+        if (value.isEmpty()) {
+          return "";
+        }
+
+        return value;
+      }
+    } catch (IOException ex) {
+      return "";
+    }
+  }
+
+  public void loadFileExtend(String fileData) {
     BoardHistoryList history = Lizzie.board.getHistory();
     BoardHistoryNode current = history.getCurrentHistoryNode();
 
@@ -60,7 +91,7 @@ public class RecordWatcher implements ActionListener {
 
       history.toStart();
       history.root().resetMainSubTree();
-      SGFParser.load(file.getPath(), true);
+      SGFParser.loadFromString(fileData, true);
 
       BoardHistoryNode endNode = history.getCurrentHistoryNode();
       Optional<ArrayList<Integer>> idxList = getGotoIdxListIfNeed(current, endNode, oldMainChild);
@@ -75,8 +106,7 @@ public class RecordWatcher implements ActionListener {
       }
     } catch (Exception err) {
       history.setCurrentHistoryNode(current);
-      System.err.println(
-          String.format("failed to load file: %s\n%s", file.getPath(), err.getMessage()));
+      System.err.println(String.format("failed to load file: \n%s", err.getMessage()));
     }
   }
 
