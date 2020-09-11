@@ -14,6 +14,7 @@ leelaz
 src/main/resources/META-INF
 target
 leelaz_opencl_tuning
+leela-zero-0.17-win64/
 *.sh
 *.jar
 .settings/
