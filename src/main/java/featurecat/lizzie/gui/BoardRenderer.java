@@ -272,7 +272,7 @@ public class BoardRenderer {
               x + scaledMarginWidth + squareWidth * i,
               y + scaledMarginHeight / 3,
               MainFrame.uiFont,
-              Board.asName(i),
+              "" + (i + 1),
               stoneRadius * 4 / 5,
               stoneRadius);
           drawString(
@@ -280,7 +280,7 @@ public class BoardRenderer {
               x + scaledMarginWidth + squareWidth * i,
               y - scaledMarginHeight / 3 + boardHeight,
               MainFrame.uiFont,
-              Board.asName(i),
+              "" + (i + 1),
               stoneRadius * 4 / 5,
               stoneRadius);
         }
@@ -290,7 +290,7 @@ public class BoardRenderer {
               x + scaledMarginWidth / 3,
               y + scaledMarginHeight + squareHeight * i,
               MainFrame.uiFont,
-              "" + (Board.boardHeight <= 25 ? (Board.boardHeight - i) : (i + 1)),
+              "" + (i + 1),
               stoneRadius * 4 / 5,
               stoneRadius);
           drawString(
@@ -298,7 +298,7 @@ public class BoardRenderer {
               x - scaledMarginWidth / 3 + boardWidth,
               y + scaledMarginHeight + squareHeight * i,
               MainFrame.uiFont,
-              "" + (Board.boardHeight <= 25 ? (Board.boardHeight - i) : (i + 1)),
+              "" + (i + 1),
               stoneRadius * 4 / 5,
               stoneRadius);
         }
