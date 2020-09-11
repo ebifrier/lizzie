@@ -409,8 +409,8 @@ public class Input implements MouseListener, KeyListener, MouseWheelListener, Mo
         if (controlIsPressed(e)) {
           Lizzie.frame.copySgf();
         } else {
-          Lizzie.config.toggleCoordinates();
-          refreshType = 2;
+          // Lizzie.config.toggleCoordinates();
+          // refreshType = 2;
         }
         break;
 
