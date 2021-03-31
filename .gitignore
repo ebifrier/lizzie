@@ -4,6 +4,8 @@ lizzie.properties
 config.txt
 out/*
 .idea/
+.vscode/
+.settings/
 *.dll
 *.iml
 *.exe
@@ -15,3 +17,5 @@ target
 leelaz_opencl_tuning
 *.sh
 *.jar
+.classpath
+.project
